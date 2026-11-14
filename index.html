@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d00000">
+<title>Selleck Showdown</title>
+<meta name="description" content="A quiz-show trivia game about what you can eat at Selleck dining hall, University of Nebraska-Lincoln.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#d00000; --red-dark:#a80000; --ink:#222; --sub:#555; --muted:#9a9a9a;
+  --line:#e6e6e6; --gray:#f4f4f6; --bg:#fff; --good:#1e8e4a; --bad:#d00000;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--gray);color:var(--ink);font:16px/1.4 Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+.app{max-width:560px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom));box-shadow:0 0 30px rgba(0,0,0,.06);position:relative}
+.hidden{display:none!important}
+
+/* ---- Top app bar ---- */
+.appbar{position:sticky;top:0;z-index:5;background:#fff;text-align:center;padding:14px 56px 10px;border-bottom:1px solid var(--line)}
+.appbar .uni{font-size:10px;font-weight:500;color:var(--red);letter-spacing:.02em;text-transform:uppercase}
+.appbar .mark{font-weight:900;font-size:clamp(19px,6vw,26px);line-height:1.05;color:var(--red);letter-spacing:.03em;white-space:nowrap}
+.appbar .bell{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.appbar .bell svg{width:28px;height:28px}
+.appbar .bell:hover,.appbar .bell[aria-expanded=true]{background:var(--gray)}
+.howto{background:#fff8e1;border-bottom:1px solid var(--line);padding:12px 16px 4px;font-size:14px;font-weight:300}
+.howto ul{margin:6px 0 8px;padding-left:18px}
+.howto li{margin:3px 0}
+.flash{animation:flash .9s}
+@keyframes flash{0%,100%{background:#fff}30%{background:#fdeaea}}
+.field input.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(208,0,0,.12)}
+
+/* ---- Sub header (back arrow + title) ---- */
+.subbar{position:sticky;top:0;z-index:5;background:#fff;display:flex;align-items:center;justify-content:center;height:52px;border-bottom:1px solid var(--line);text-transform:uppercase;font-size:17px;letter-spacing:.02em}
+.subbar .back{position:absolute;left:6px;width:44px;height:44px;display:grid;place-items:center}
+.subbar .back svg{width:22px;height:22px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);font-size:17px;font-weight:300}
+.seg div{text-align:center;padding:12px 6px}
+.seg div+div{border-left:1px solid var(--line)}
+
+/* ---- Section headers + list rows (restaurant list) ---- */
+.section{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px 10px;border-bottom:2px solid var(--line);background:#fff}
+.section h2{margin:0;font-size:22px;font-weight:400;text-transform:uppercase}
+.section .addr{font-size:12px;color:var(--sub);text-align:right;line-height:1.3}
+.gap{height:22px;background:var(--gray);border-top:1px solid var(--line)}
+.rows{list-style:none;margin:0;padding:0}
+.rest{display:flex;align-items:center;gap:16px;width:100%;text-align:left;padding:12px 16px}
+.rows li+li .rest{border-top:1px solid var(--line)}
+.rows li{margin:0 0 0 0}
+.rest:hover,.item:hover:not(:disabled){background:#fafafa}
+.logo{flex:0 0 58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:28px}
+.rest .txt{flex:1;min-width:0}
+.rest .name{font-size:22px;font-weight:300;line-height:1.15}
+.rest .stat{font-size:14px;color:var(--sub);font-weight:300}
+.rest .right{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:15px;white-space:nowrap}
+.chev{width:10px;height:16px;flex:none;color:#b5b5b5}
+.rest.locked .name,.rest.locked .stat{color:var(--muted)}
+.rest.locked .logo{filter:grayscale(1);opacity:.55}
+
+/* ---- Category chips + menu items ---- */
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;border-bottom:1px solid var(--line);scrollbar-width:none;position:sticky;top:52px;background:#fff;z-index:4}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 12px;border-radius:3px;font-size:14px;font-weight:500;text-transform:uppercase;white-space:nowrap}
+.chip[aria-selected=true]{background:var(--red);color:#fff}
+.notice{margin:10px 12px;background:#f7f7f9;border:1px solid var(--line);border-radius:4px;text-align:center;font-size:13px;color:var(--sub);padding:9px}
+.menuhead{padding:14px 16px 8px;font-size:18px;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:20px 16px;border-bottom:1px solid var(--line);font-size:19px;font-weight:300}
+.item .price{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--sub);white-space:nowrap}
+.item:disabled{cursor:default;color:var(--muted)}
+.item:disabled .price{color:var(--muted)}
+.item .ok{color:var(--good);font-weight:500}
+.item .no{color:var(--bad);font-weight:500}
+
+/* ---- Clue screen ---- */
+.screen{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.25);display:none}
+.screen.show{display:block}
+.screen .app{padding-bottom:calc(84px + env(safe-area-inset-bottom));min-height:100%;height:100%;overflow:auto}
+.cluebody{padding:22px 18px}
+.dd{text-align:center;font-weight:900;color:var(--red);font-size:clamp(34px,9vw,48px);line-height:1.05;margin:14px 0 6px;letter-spacing:.02em}
+.ddsub{text-align:center;color:var(--sub);font-weight:300;margin:0 0 18px}
+.clue{font-size:clamp(21px,5.2vw,27px);font-weight:300;line-height:1.35;margin:4px 0 22px}
+.field label{display:block;font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.field input{width:100%;font:300 19px Roboto,sans-serif;padding:14px 12px;border:1px solid #cfcfcf;border-radius:4px;background:#fff;color:var(--ink)}
+.field input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(208,0,0,.12)}
+.linkbtn{display:block;margin:16px auto 0;color:var(--sub);font-size:15px;text-decoration:underline;text-underline-offset:3px}
+.verdict{font-size:30px;font-weight:700;margin:4px 0 12px}
+.verdict.good{color:var(--good)} .verdict.bad{color:var(--bad)}
+.receipt{border:1px solid var(--line);border-radius:4px}
+.receipt div{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;font-weight:300}
+.receipt div+div{border-top:1px solid var(--line)}
+.receipt b{font-weight:500;text-align:right}
+.fact{color:var(--sub);font-size:15px;font-weight:300;margin:14px 0 0}
+.checkout{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(536px,calc(100% - 24px));background:var(--red);color:#fff;font-size:17px;font-weight:400;text-transform:uppercase;letter-spacing:.03em;padding:16px;border-radius:3px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.checkout:hover{background:var(--red-dark)}
+
+/* ---- End screen ---- */
+.end{padding:24px 16px;text-align:center}
+.end .big{font-size:48px;font-weight:900;color:var(--red);margin:6px 0}
+.end p{color:var(--sub);font-weight:300;margin:0 0 18px}
+#log{text-align:left}
+#log li{align-items:center;display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:300;font-size:15px}
+#log small{font-size:13px;margin-top:2px;display:block;color:var(--muted)}
+
+/* ---- Bottom tab bar ---- */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;background:var(--red);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:10}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font-size:13px;font-weight:500;padding:2px 0}
+.tab svg{width:26px;height:26px}
+.tab[aria-current=page]{color:#111;font-weight:700}
+.tab:disabled{opacity:.45;cursor:default}
+.tab .amt{font-size:19px;font-weight:700;line-height:26px}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:18px 16px;font-weight:300}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HOME: restaurant-list style -->
+  <div id="home">
+    <header class="appbar">
+      <div class="uni">University of Nebraska–Lincoln</div>
+      <div class="mark">SELLECK SHOWDOWN</div>
+      <button class="bell" id="bell" aria-label="How to play" aria-expanded="false" aria-controls="howto"><svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/><path d="M12 3v2"/></svg></button>
+    </header>
+    <div class="howto hidden" id="howto">
+      <b>How to play</b>
+      <ul>
+        <li>Pick a category, then a clue. Harder clues are worth more.</li>
+        <li>Type your response — “What is…” is optional, and small typos are OK.</li>
+        <li>Wrong answers lose points. Not sure? Tap <i>Pass</i> to skip with no penalty.</li>
+        <li>Two hidden <b>Daily Doubles</b> let you bet on yourself.</li>
+        <li>After 15 clues, the <b>Final Showdown</b> unlocks. Wager what you've earned!</li>
+      </ul>
+    </div>
+    <div class="section"><h2>Selleck</h2><div class="addr">Selleck Food Court, 600 N 15th<br>St, Lincoln, NE 68588</div></div>
+    <ul class="rows" id="catList"></ul>
+    <div class="gap"></div>
+    <div class="section"><h2>Final Round</h2><div class="addr">Answer in the form<br>of a question</div></div>
+    <ul class="rows"><li>
+      <button class="rest locked" id="finalRow">
+        <span class="logo" style="background:#fdeaea">🏆</span>
+        <span class="txt"><span class="name" style="display:block">Final Showdown</span><span class="stat" id="finalStat">Opens after 15 clues</span></span>
+        <span class="right"><svg class="chev" viewBox="0 0 10 16" aria-hidden="true"><path d="M2 1l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+      </button>
+    </li></ul>
+    <footer>Menu items and prices from the UNL Dining To Go app, Nov. 11, 2026. Menus change — this is just for fun.</footer>
+  </div>
+
+  <!-- CATEGORY: menu style -->
+  <div id="cat" class="hidden">
+    <div class="subbar">
+      <button class="back" id="catBack" aria-label="Back to categories"><svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2"><path d="M15 4l-8 8 8 8"/></svg></button>
+      <span id="catTitle"></span>
+    </div>
+    <div class="chips" id="chips" role="tablist"></div>
+    <div class="notice">Pick a clue · Answer in the form of a question</div>
+    <div class="menuhead" id="catHead"></div>
+    <div id="items"></div>
+  </div>
+
+  <!-- END -->
+  <div id="end" class="hidden">
+    <div class="subbar"><span>Order Summary</span></div>
+    <div class="end">
+      <div style="color:var(--sub);font-weight:300">Final score</div>
+      <div class="big" id="endScore">$0</div>
+      <p id="endText"></p>
+    </div>
+    <ul class="rows" id="log" style="border-top:1px solid var(--line)"></ul>
+    <div style="padding:20px 16px"><button class="checkout" style="position:static;transform:none;width:100%" id="again">Play again</button></div>
+  </div>
+</div>
+
+<!-- CLUE screen -->
+<div class="screen" id="screen" role="dialog" aria-modal="true" aria-labelledby="clueTitle">
+  <div class="app">
+    <div class="subbar">
+      <button class="back" id="clueBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2"><path d="M15 4l-8 8 8 8"/></svg></button>
+      <span id="clueTitle"></span>
+    </div>
+    <div class="seg"><div id="segL"></div><div id="segR"></div></div>
+    <div class="cluebody">
+      <div id="wagerBox" class="hidden">
+        <div class="dd" id="ddText">DAILY DOUBLE!</div>
+        <p class="ddsub" id="wagerHint"></p>
+        <div class="field"><label for="wager">Your wager ($)</label><input id="wager" type="number" min="0" step="100" inputmode="numeric"></div>
+      </div>
+      <form id="answerForm" autocomplete="off" class="hidden">
+        <p class="clue" id="clueText"></p>
+        <div class="field"><label for="answer">Your response</label><input id="answer" placeholder="What is…"></div>
+        <button type="button" class="linkbtn" id="pass">Pass on this one</button>
+      </form>
+      <div id="result" class="hidden">
+        <p class="verdict" id="verdict"></p>
+        <div class="receipt">
+          <div><span>Correct response</span><b id="correct"></b></div>
+          <div id="yourRow"><span>You said</span><b id="yours"></b></div>
+          <div><span>Score</span><b id="scoreNow"></b></div>
+        </div>
+        <p class="fact" id="fact"></p>
+        <button class="linkbtn hidden" id="override">I was right — count it</button>
+      </div>
+    </div>
+    <button class="checkout" id="cta">Submit answer</button>
+  </div>
+</div>
+
+<!-- Bottom tab bar -->
+<nav class="tabbar" aria-label="Game">
+  <button class="tab" id="tabHome" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l9 8h-3v9h-4v-6h-4v6H6v-9H3z"/></svg>Home</button>
+  <div class="tab" id="tabScore" aria-live="polite"><span class="amt" id="score">$0</span>Score</div>
+  <button class="tab" id="tabFinal" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/></svg>Final</button>
+  <button class="tab" id="restart">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg><span id="restartLbl">New game</span></button>
+</nav>
+
+<script>
+/* ---------- Clue data ----------
+   a: the "correct response" shown to the player
+   ok: accepted keywords (any one matching counts as right)
+   f: a fun fact shown after answering                       */
+const CATEGORIES = [
+  { name: "Name That Spot", clues: [
+    { q: "This Selleck spot with a big orange “Q” logo serves burritos and bowls from 10:30 a.m. to 8 p.m.", a: "Qdoba", ok: ["qdoba"], f: "Qdoba showed an 11-minute wait on Dining To Go." },
+    { q: "Its Dining To Go listing just said “Manicotti!!” — and its name is Italian for “good pasta.”", a: "Pasta Buono", ok: ["pasta buono","buono"], f: "Buono = “good” in Italian." },
+    { q: "A big letter G wrapped in a leaf is the logo of this salad-and-bowls station.", a: "Grains & Greens", ok: ["grains and greens","grains greens","grains"], f: "Open 10:30 a.m.–8 p.m." },
+    { q: "Selleck's early bird: it opens at 6:45 a.m., then closes daily from 10 to 11 a.m.", a: "Selleck Cafe", ok: ["selleck cafe","selleck café"], f: "Hours: 6:45–10 a.m. and 11 a.m.–7 p.m." },
+    { q: "On the app, this Selleck spot with a plain fork-and-spoon logo was “Closed for Training.”", a: "Spare 5", ok: ["spare 5","spare five"], f: "It sits right below Scarlet Skillet, which was “Now Closed.”" }
+  ]},
+  { name: "Selleck Cafe Bake Shop", clues: [
+    { q: "At $2.25, this frosted treat is the cheapest dessert at Selleck Cafe.", a: "Frosted Sugar Cookie", ok: ["sugar cookie"], f: "Most pastries there run $3.25–$3.50." },
+    { q: "Named after an animal's paw, this cinnamon almond pastry is the priciest at $3.75.", a: "Cinnamon Almond Bear Claw", ok: ["bear claw","bearclaw"], f: "The only Selleck Cafe pastry over $3.50." },
+    { q: "This San Francisco chocolate brand's name is on both a $3.25 brownie and a $3.50 muffin.", a: "Ghirardelli", ok: ["ghirardelli","ghiradelli","ghirardeli"], f: "Ghirardelli Chocolate Brownie and Ghirardelli Choc. Chocolate Chip Muffin." },
+    { q: "Snap, crackle, pop: this “Jumbo” cereal bar costs $3.50.", a: "Jumbo Rice Krispie Bar", ok: ["rice krispie","rice crispy","rice krispy","rice krispies"], f: "Same price as the pumpkin bread and banana bread." },
+    { q: "Shaped like little seashells, these French sponge cakes sell for $3.00.", a: "Madeleine Cookies", ok: ["madeleine","madeline","madelines"], f: "Madeleines come from the Lorraine region of France." }
+  ]},
+  { name: "Sandwiched In", clues: [
+    { q: "Smoky sauce on slow-cooked, shredded pig makes this $11.25 Selleck Cafe sandwich.", a: "BBQ Pulled Pork", ok: ["pulled pork"], f: "Every Selleck Cafe sandwich costs $11.25." },
+    { q: "Served with a cup of beef juice for dunking, this sandwich has a French name.", a: "French Dip", ok: ["french dip"], f: "It tops the Sandwiches list on the app." },
+    { q: "Besides wings, this cheesy, toasty basket is the only other basket at Selleck Cafe.", a: "Grilled Cheese Basket", ok: ["grilled cheese"], f: "Both baskets are $11.25." },
+    { q: "Homemade and meat-free, this Selleck Cafe burger gets its protein from legumes.", a: "Homemade Black Bean Burger", ok: ["black bean"], f: "The last item in the Sandwiches section." },
+    { q: "Jalapeño poppers meet chicken in this melty Selleck Cafe sandwich.", a: "Jalapeño Popper Chicken Melt", ok: ["popper","jalapeno chicken","jalapeño chicken","chicken melt"], f: "Spicier than the Buffalo Chicken Sandwich? You decide." }
+  ]},
+  { name: "Runza Rundown", clues: [
+    { q: "Runza's sweet, swirly $3.89 treat — the app said Runza was all about chili and these.", a: "Cinnamon Roll", ok: ["cinnamon roll"], f: "Chili and cinnamon rolls: a classic Nebraska combo." },
+    { q: "Runza calls its $4.49 bowl of this “Famous.”", a: "Famous Chili", ok: ["chili","chilli"], f: "Pair it with a cinnamon roll, Nebraska style." },
+    { q: "At $11.00, this is the cheapest combo on Runza's menu.", a: "Original Runza Sandwich Combo", ok: ["original runza","original","runza sandwich","runza"], f: "A Runza is a bread pocket filled with beef, cabbage and onions." },
+    { q: "Runza sells both a sandwich and a burger in this “spicy” cheese style.", a: "Spicy Jack", ok: ["spicy jack","pepper jack","jack"], f: "Spicy Jack Burger Combo: $11.25." },
+    { q: "At $11.75, this double-decker is Runza's most expensive burger combo.", a: "Double Cheeseburger Combo", ok: ["double cheeseburger","double cheese burger"], f: "The plain Double Hamburger Combo is $11.50." }
+  ]},
+  { name: "Moxie's Gluten-Free", clues: [
+    { q: "Moxie's whole menu leaves out this protein found in wheat, barley and rye.", a: "Gluten", ok: ["gluten"], f: "Moxie's calls itself “A Gluten Free Cafe.”" },
+    { q: "Rolled in cinnamon sugar, this GF cookie with a funny name costs $3.25 at Moxie's.", a: "GF Snickerdoodle Cookie", ok: ["snickerdoodle","snicker doodle"], f: "The GF Chocolate Chip Cookie is the same price." },
+    { q: "Moxie's Build Your Own Noodle Bowl is only on these two days of the week.", a: "Wednesday and Friday", ok: ["wednesday and friday","wed and fri","wednesday friday","wed fri","friday and wednesday"], f: "“Noodle Bowl on Wed & Fri,” per the app." },
+    { q: "This Korean marinated beef stars in one of Moxie's tacos.", a: "Bulgogi", ok: ["bulgogi","bulgoggi","bulgogee"], f: "Moxie's spelled it “Bulgogi Tacos” — $11.25." },
+    { q: "Pork belly gets this Filipino vinegar-and-soy braise in a Moxie's taco.", a: "Adobo", ok: ["adobo"], f: "Pork Belly Adobo Tacos — $11.25." }
+  ]},
+  { name: "Soup's On", clues: [
+    { q: "Selleck Cafe's $5 soup with poultry and pasta — good for a cold.", a: "Chicken Noodle Soup", ok: ["chicken noodle"], f: "Its partner on the menu is Cream of Tomato." },
+    { q: "Moxie's “Loaded” soup is built on this green, tree-shaped vegetable.", a: "Broccoli", ok: ["broccoli","brocolli","brocoli"], f: "Loaded Broccoli Soup, at Moxie's." },
+    { q: "Moxie's chicken soup is named for this crunchy Mexican flatbread.", a: "Tortilla", ok: ["tortilla"], f: "Chicken Tortilla Soup." },
+    { q: "Grilled cheese's best friend: Selleck Cafe calls it Cream of this.", a: "Tomato", ok: ["tomato"], f: "Moxie's also has a plain Tomato Soup." },
+    { q: "Moxie's “Creamy” soup is made from these spuds.", a: "Potato", ok: ["potato","potatoes","potatos"], f: "Creamy Potato Soup — the app said “Soup is back..”" }
+  ]}
+];
+const VALUES = [200, 400, 600, 800, 1000];
+const FINAL = {
+  cat: "Wait Times",
+  q: "On the Dining To Go app, this Nebraska-born chain had the shortest wait at Selleck: just 9 minutes.",
+  a: "Runza", ok: ["runza"], f: "Qdoba was 11 minutes; Grains & Greens, Selleck Cafe and Moxie's were 12."
+};
+
+/* ---------- Answer checking ---------- */
+function norm(s){
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/&/g," and ")
+    .replace(/[^a-z0-9 ]/g," ")
+    .replace(/^\s*(what|who|where|when)\s+(is|are|was|were|s)\s+/,"")
+    .replace(/^\s*(whats|whos)\s+/,"")
+    .replace(/^\s*(a|an|the)\s+/,"")
+    .replace(/\s+/g," ").trim();
+}
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+function isCorrect(response, clue){
+  const r = norm(response); if(!r) return false;
+  const rs = r.replace(/ /g,"");
+  return clue.ok.some(k=>{
+    const kn = norm(k), ks = kn.replace(/ /g,"");
+    if (rs.includes(ks)) return true;
+    // forgive small typos on whole-answer attempts
+    const tol = ks.length >= 8 ? 2 : ks.length >= 5 ? 1 : 0;
+    if (lev(rs, ks) <= tol) return true;
+    // typo inside a longer answer: slide a window across the response
+    for (let i=0; i + ks.length - tol <= rs.length; i++){
+      for (let len = ks.length - tol; len <= ks.length + tol; len++){
+        if (i+len > rs.length) break;
+        if (lev(rs.slice(i,i+len), ks) <= tol) return true;
+      }
+    }
+    return false;
+  });
+}
+
+
+/* ---------- Look & feel per category (home list "logos") ---------- */
+const LOOK = [
+  { icon:"📍", bg:"#fff1df" },
+  { icon:"🥐", bg:"#fbf3e2" },
+  { icon:"🥪", bg:"#eef6e8" },
+  { icon:"🥟", bg:"#e5f2ea" },
+  { icon:"🌾", bg:"#f6eefb" },
+  { icon:"🍲", bg:"#fdeaea" }
+];
+const LEVELS = ["Easy", "Medium", "Tricky", "Hard", "Expert"];
+const UNLOCK_FINAL = 15;
+const CHEV = '<svg class="chev" viewBox="0 0 10 16" aria-hidden="true"><path d="M2 1l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+
+/* ---------- Game state ---------- */
+const $ = id => document.getElementById(id);
+const money = n => (n<0?"−$":"$") + Math.abs(n).toLocaleString();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let score, results, dailyDoubles, current, finalDone, catIndex = 0, phase;
+
+function newGame(){
+  score = 0; results = {}; finalDone = false; current = null;
+  dailyDoubles = new Set();
+  while (dailyDoubles.size < 2){            // never on the $200 row
+    dailyDoubles.add(Math.floor(Math.random()*6) + "-" + (1 + Math.floor(Math.random()*4)));
+  }
+  $("screen").classList.remove("show");
+  showView("home");
+  render();
+}
+const usedCount = () => Object.keys(results).length;
+
+/* ---------- Views ---------- */
+function showView(v){
+  ["home","cat","end"].forEach(id => $(id).classList.toggle("hidden", id !== v));
+  $("tabHome").setAttribute("aria-current", v === "home" ? "page" : "false");
+  window.scrollTo(0,0);
+}
+
+function render(){
+  // score in tab bar
+  $("score").textContent = money(score);
+
+  // home list
+  $("catList").innerHTML = CATEGORIES.map((c,ci)=>{
+    const left = c.clues.filter((_,r)=>!results[ci+"-"+r]).length;
+    const leftVal = VALUES.reduce((s,v,r)=>s + (results[ci+"-"+r] ? 0 : v), 0);
+    return `<li><button class="rest${left?"":" locked"}" data-cat="${ci}">
+      <span class="logo" style="background:${LOOK[ci].bg}">${LOOK[ci].icon}</span>
+      <span class="txt"><span class="name" style="display:block">${c.name}</span>
+        <span class="stat">${left ? `Open. ${left} clue${left>1?"s":""} left` : "Now Closed"}</span></span>
+      <span class="right">${left ? money(leftVal) : ""}${CHEV}</span></button></li>`;
+  }).join("");
+
+  // final row + tab
+  const n = usedCount(), open = (n >= UNLOCK_FINAL || n === 30) && !finalDone;
+  $("finalRow").classList.toggle("locked", !open);
+  $("finalStat").textContent = finalDone ? "Now Closed"
+    : open ? "Open. Wager what you've earned"
+    : `Opens after ${UNLOCK_FINAL} clues (${UNLOCK_FINAL - n} to go)`;
+  $("tabFinal").disabled = !open;
+
+  // category screen (if visible)
+  renderCat();
+}
+
+function openCat(ci){ catIndex = ci; renderCat(); showView("cat"); }
+
+function renderCat(){
+  const c = CATEGORIES[catIndex];
+  $("catTitle").textContent = c.name;
+  $("catHead").textContent = c.name;
+  $("chips").innerHTML = CATEGORIES.map((x,i)=>
+    `<button class="chip" role="tab" aria-selected="${i===catIndex}" data-chip="${i}">${x.name}</button>`).join("");
+  $("items").innerHTML = c.clues.map((cl,r)=>{
+    const res = results[catIndex+"-"+r];
+    if (!res) return `<button class="item" data-clue="${r}"><span>${LEVELS[r]} clue</span><span class="price">${money(VALUES[r])}${CHEV}</span></button>`;
+    const tag = res.right===true ? `<span class="ok">✓ +${money(res.value)}</span>`
+              : res.right===false ? `<span class="no">✗ ${money(-res.value)}</span>` : "Passed";
+    return `<button class="item" disabled><span>${esc(cl.a)}</span><span class="price">${tag}</span></button>`;
+  }).join("");
+  const sel = $("chips").querySelector('[aria-selected="true"]');
+  if (sel) sel.scrollIntoView({block:"nearest", inline:"center"});
+}
+
+/* ---------- Clue screen ---------- */
+function openClue(ci, r){
+  const key = ci+"-"+r; if (results[key]) return;
+  current = { clue:CATEGORIES[ci].clues[r], value:VALUES[r], key, cat:CATEGORIES[ci].name, dd:dailyDoubles.has(key), final:false };
+  $("clueTitle").textContent = current.cat;
+  $("segL").textContent = LEVELS[r];
+  $("segR").textContent = money(VALUES[r]);
+  if (current.dd){
+    const max = Math.max(score, 1000);
+    $("ddText").textContent = "DAILY DOUBLE!";
+    setPhase("wager", { max, hint:`Wager anything from $5 up to ${money(max)}.`, start: VALUES[r] });
+  } else setPhase("answer");
+  $("screen").classList.add("show");
+}
+
+function openFinal(){
+  if ($("tabFinal").disabled){
+    // locked: make it obvious why nothing opened
+    const row = $("finalRow");
+    row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+    return;
+  }
+  current = { clue:FINAL, value:0, cat:"Final Showdown", final:true };
+  $("clueTitle").textContent = "Final Showdown";
+  $("segL").textContent = FINAL.cat;
+  $("segR").textContent = "Final round";
+  $("ddText").textContent = "FINAL SHOWDOWN";
+  if (score > 0) setPhase("wager", { max:score, hint:`Category: ${FINAL.cat}. Wager $0 to ${money(score)}.`, start:0 });
+  else setPhase("answer");
+  $("screen").classList.add("show");
+}
+
+function setPhase(p, opt){
+  phase = p;
+  $("wagerBox").classList.toggle("hidden", p !== "wager");
+  $("answerForm").classList.toggle("hidden", p !== "answer");
+  $("result").classList.toggle("hidden", p !== "result");
+  $("clueBack").classList.toggle("hidden", p === "answer");   // no peeking, then backing out
+  $("screen").querySelector(".app").scrollTop = 0;
+  if (p === "wager"){
+    current.max = opt.max;
+    $("wagerHint").textContent = opt.hint;
+    $("wager").max = opt.max; $("wager").value = Math.min(opt.max, opt.start);
+    $("wager").classList.remove("invalid");
+    $("cta").textContent = "Lock in wager";
+    setTimeout(()=>$("wager").focus(), 60);
+  } else if (p === "answer"){
+    $("clueText").textContent = current.clue.q;
+    $("answer").value = "";
+    $("pass").classList.toggle("hidden", current.final);
+    $("cta").textContent = "Submit answer";
+    setTimeout(()=>$("answer").focus(), 60);
+  } else {
+    $("cta").textContent = current.final ? "See my order summary" : "Back to menu";
+    setTimeout(()=>$("cta").focus(), 60);
+  }
+}
+
+function lockWager(){
+  if (phase !== "wager") return;
+  const raw = $("wager").value.trim(), min = current.final ? 0 : 5;
+  let w = Math.round(Number(raw));
+  if (raw === "" || !Number.isFinite(w) || w < min || w > current.max){
+    $("wager").classList.add("invalid");
+    $("wagerHint").textContent = `Enter a number from ${money(min)} to ${money(current.max)}.`;
+    $("wager").focus();
+    return;
+  }
+  $("wager").classList.remove("invalid");
+  current.value = w;
+  $("segR").textContent = "Wager " + money(w);
+  setPhase("answer");
+}
+
+function judge(resp, right){
+  current.resp = resp; current.right = right;
+  if (right === true) score += current.value;
+  else if (right === false) score -= current.value;
+  const v = $("verdict");
+  v.className = "verdict " + (right ? "good" : "bad");
+  v.textContent = right===true ? "Correct! +" + money(current.value)
+                : right===false ? "Sorry! " + money(-current.value) : "Passed";
+  $("correct").textContent = "What is " + current.clue.a + "?";
+  $("yourRow").classList.toggle("hidden", !resp);
+  $("yours").textContent = resp;
+  $("scoreNow").textContent = money(score);
+  $("fact").textContent = current.clue.f || "";
+  $("override").classList.toggle("hidden", right !== false);
+  $("score").textContent = money(score);
+  setPhase("result");
+}
+
+function closeClue(){
+  $("screen").classList.remove("show");
+  if (phase !== "result") return;               // backed out before answering
+  const rec = { cat:current.cat, a:current.clue.a, resp:current.resp, right:current.right, value:current.value };
+  if (current.final){ finalDone = true; results.final = rec; render(); endGame(); return; }
+  results[current.key] = rec;
+  render();
+}
+
+/* ---------- End ---------- */
+function endGame(){
+  const all = Object.values(results);
+  const right = all.filter(h=>h.right===true).length;
+  $("endScore").textContent = money(score);
+  $("endText").textContent = `You got ${right} of ${all.length} right. ` +
+    (score>=15000 ? "Selleck legend — you've clearly eaten here a lot."
+     : score>=6000 ? "Solid! You know your way around the food court."
+     : "Time for a few more trips to Selleck.");
+  $("log").innerHTML = all.map(h=>`<li><span>${esc(h.a)}<small>${esc(h.cat)}${h.resp ? " · you said “"+esc(h.resp)+"”" : " · passed"}</small></span>
+    <span class="${h.right?"ok":"no"}" style="color:var(--${h.right===true?"good":h.right===false?"bad":"muted"});white-space:nowrap">${h.right===true?"+":h.right===false?"−":""}${h.right===null?"—":"$"+h.value.toLocaleString()}</span></li>`).join("");
+  showView("end");
+}
+
+/* ---------- Wiring ---------- */
+$("catList").addEventListener("click", e=>{ const b=e.target.closest("[data-cat]"); if (b) openCat(+b.dataset.cat); });
+$("chips").addEventListener("click", e=>{ const b=e.target.closest("[data-chip]"); if (b){ catIndex=+b.dataset.chip; renderCat(); } });
+$("items").addEventListener("click", e=>{ const b=e.target.closest("[data-clue]"); if (b) openClue(catIndex, +b.dataset.clue); });
+$("catBack").addEventListener("click", ()=>showView("home"));
+$("finalRow").addEventListener("click", openFinal);
+$("tabFinal").addEventListener("click", openFinal);
+$("tabHome").addEventListener("click", ()=>{
+  if (finalDone){ newGame(); return; }     // game is over: Home starts a fresh board
+  $("screen").classList.remove("show"); showView("home");
+});
+
+$("cta").addEventListener("click", ()=>{
+  if (phase === "wager") lockWager();
+  else if (phase === "answer") $("answerForm").requestSubmit();
+  else closeClue();
+});
+$("wager").addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); lockWager(); }});
+$("answerForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const resp = $("answer").value.trim();
+  if (!resp){ $("answer").focus(); return; }
+  judge(resp, isCorrect(resp, current.clue));
+});
+$("pass").addEventListener("click", ()=>judge("", null));
+$("override").addEventListener("click", ()=>{
+  score += current.value*2; current.right = true;
+  $("verdict").className = "verdict good";
+  $("verdict").textContent = "Ruled correct! +" + money(current.value);
+  $("scoreNow").textContent = money(score); $("score").textContent = money(score);
+  $("override").classList.add("hidden");
+});
+$("clueBack").addEventListener("click", closeClue);
+document.addEventListener("keydown", e=>{
+  if (e.key==="Escape" && $("screen").classList.contains("show") && phase !== "answer") closeClue();
+});
+
+/* New game: ask "are you sure?" on the button itself (browsers can silently block confirm()) */
+let restartArmed = null;
+function resetRestartBtn(){ clearTimeout(restartArmed); restartArmed = null; $("restartLbl").textContent = "New game"; }
+$("restart").addEventListener("click", ()=>{
+  const midGame = usedCount() > 0 && !finalDone;
+  if (midGame && !restartArmed){
+    $("restartLbl").textContent = "Tap again";
+    restartArmed = setTimeout(resetRestartBtn, 3000);
+    return;
+  }
+  resetRestartBtn(); newGame();
+});
+$("again").addEventListener("click", newGame);
+$("bell").addEventListener("click", ()=>{
+  const open = $("howto").classList.toggle("hidden") === false;
+  $("bell").setAttribute("aria-expanded", open);
+});
+
+newGame();
+</script>
+</body>
+</html>
